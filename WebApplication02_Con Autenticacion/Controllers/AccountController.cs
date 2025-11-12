@@ -44,7 +44,7 @@ namespace WebApplication02_Con_Autenticacion.Controllers
         public ActionResult Login(string returnUrl, string modulo)
         {
             ViewBag.ReturnUrl = returnUrl;
-            ViewBag.Modulo = modulo; // Guardar el módulo desde el layout (Médico, Paciente o Administrador)
+            ViewBag.Modulo = modulo;
             return View();
         }
 
@@ -55,7 +55,7 @@ namespace WebApplication02_Con_Autenticacion.Controllers
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> Login(LoginViewModel model, string returnUrl, string modulo)
         {
-            ViewBag.Modulo = modulo; // Retener módulo al recargar la vista si hay error
+            ViewBag.Modulo = modulo;
 
             if (!ModelState.IsValid)
                 return View(model);
@@ -71,16 +71,16 @@ namespace WebApplication02_Con_Autenticacion.Controllers
                 return View(model);
             }
 
-            // 🔹 Obtener el rol del usuario desde Identity
+            // Obtener el rol del usuario desde Identity
             var roles = await UserManager.GetRolesAsync(user.Id);
             string rolUsuario = roles.FirstOrDefault();
 
-            // 🔹 Validar coincidencia entre módulo elegido y rol del usuario
+            // Validar coincidencia entre módulo elegido y rol del usuario
             bool accesoValido = false;
 
             if (string.IsNullOrEmpty(modulo))
             {
-                accesoValido = true; // Permitir si no se envió módulo
+                accesoValido = true;
             }
             else if (modulo == "Medico" && rolUsuario == "Medico")
                 accesoValido = true;
@@ -89,16 +89,16 @@ namespace WebApplication02_Con_Autenticacion.Controllers
             else if (modulo == "Administrador" && (rolUsuario == "Administrador" || rolUsuario == "SuperAdmin"))
                 accesoValido = true;
             else if (rolUsuario == "SuperAdmin")
-                accesoValido = true; // SuperAdmin puede entrar en cualquier módulo
+                accesoValido = true;
 
-            // 🔸 Si el rol no corresponde al módulo, mostrar error
+            // Si el rol no corresponde al módulo, mostrar error
             if (!accesoValido)
             {
                 ModelState.AddModelError("", $"⚠️ No puede iniciar sesión en el módulo '{modulo}', su rol asignado es '{rolUsuario}'.");
                 return View(model);
             }
 
-            // 🔹 Autenticación normal
+            // Autenticación normal
             var result = await SignInManager.PasswordSignInAsync(model.UserName, model.Password, model.RememberMe, shouldLockout: false);
             switch (result)
             {
