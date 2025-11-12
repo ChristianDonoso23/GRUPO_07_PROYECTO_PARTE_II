@@ -7,6 +7,7 @@ using System.Net;
 using System.Web;
 using System.Web.Mvc;
 using WebApplication02_Con_Autenticacion.Models;
+using WebApplication02_Con_Autenticacion.Helpers;
 
 namespace WebApplication02_Con_Autenticacion.Controllers
 {
@@ -14,12 +15,53 @@ namespace WebApplication02_Con_Autenticacion.Controllers
     {
         private ProyectoVeris_Context db = new ProyectoVeris_Context();
 
-        // GET: Consulta
+        // GET: Consulta 
         [Authorize(Roles = "SuperAdmin, Administrador, Medico")]
         public ActionResult Index()
         {
-            var consultas = db.consultas.Include(c => c.pacientes).Include(c => c.medicos);
-            return View(consultas.ToList());
+            var usuario = SessionHelper.CurrentUser;
+            IQueryable<consultas> consultasQuery;
+
+            if (usuario == null)
+                return RedirectToAction("Login", "Account");
+
+            if (User.IsInRole("SuperAdmin") || User.IsInRole("Administrador"))
+            {
+                consultasQuery = db.consultas;
+            }
+            else if (User.IsInRole("Medico"))
+            {
+                var idMedico = db.medicos
+                    .Where(m => m.IdUsuario == usuario.Id)
+                    .Select(m => m.IdMedico)
+                    .FirstOrDefault();
+
+                consultasQuery = db.consultas.Where(c => c.IdMedico == idMedico);
+            }
+            else
+            {
+                consultasQuery = Enumerable.Empty<consultas>().AsQueryable();
+            }
+
+            var lista = consultasQuery
+                .ToList()
+                .Select(c => new consultas
+                {
+                    IdConsulta = c.IdConsulta,
+                    IdMedico = c.IdMedico,
+                    IdPaciente = c.IdPaciente,
+                    FechaConsulta = c.FechaConsulta,
+                    HI = c.HI,
+                    HF = c.HF,
+                    Diagnostico = c.Diagnostico,
+                    pacientes = db.pacientes.FirstOrDefault(p => p.IdPaciente == c.IdPaciente),
+                    medicos = db.medicos.FirstOrDefault(m => m.IdMedico == c.IdMedico)
+                })
+                .ToList();
+
+            System.Diagnostics.Debug.WriteLine("Consultas cargadas: " + lista.Count);
+
+            return View(lista);
         }
 
         // GET: Consulta/Details/5
@@ -33,6 +75,9 @@ namespace WebApplication02_Con_Autenticacion.Controllers
             if (consulta == null)
                 return HttpNotFound();
 
+            consulta.medicos = db.medicos.FirstOrDefault(m => m.IdMedico == consulta.IdMedico);
+            consulta.pacientes = db.pacientes.FirstOrDefault(p => p.IdPaciente == consulta.IdPaciente);
+
             return View(consulta);
         }
 
@@ -40,8 +85,27 @@ namespace WebApplication02_Con_Autenticacion.Controllers
         [Authorize(Roles = "SuperAdmin, Medico")]
         public ActionResult Create()
         {
+            var usuario = SessionHelper.CurrentUser;
+
             ViewBag.IdPaciente = new SelectList(db.pacientes, "IdPaciente", "Nombre");
-            ViewBag.IdMedico = new SelectList(db.medicos, "IdMedico", "Nombre");
+
+            if (usuario != null && User.IsInRole("Medico") && !User.IsInRole("SuperAdmin"))
+            {
+                var idMedico = db.medicos
+                    .Where(m => m.IdUsuario == usuario.Id)
+                    .Select(m => m.IdMedico)
+                    .FirstOrDefault();
+
+                ViewBag.IdMedico = new SelectList(
+                    db.medicos.Where(m => m.IdMedico == idMedico),
+                    "IdMedico", "Nombre"
+                );
+            }
+            else
+            {
+                ViewBag.IdMedico = new SelectList(db.medicos, "IdMedico", "Nombre");
+            }
+
             return View();
         }
 
@@ -51,27 +115,35 @@ namespace WebApplication02_Con_Autenticacion.Controllers
         [Authorize(Roles = "SuperAdmin, Medico")]
         public ActionResult Create([Bind(Include = "IdConsulta,IdMedico,IdPaciente,FechaConsulta,HI,HF,Diagnostico")] consultas consulta)
         {
+            var usuario = SessionHelper.CurrentUser;
+
+            if (usuario != null && User.IsInRole("Medico") && !User.IsInRole("SuperAdmin"))
+            {
+                var idMedico = db.medicos
+                    .Where(m => m.IdUsuario == usuario.Id)
+                    .Select(m => m.IdMedico)
+                    .FirstOrDefault();
+
+                consulta.IdMedico = idMedico;
+            }
+
             ViewBag.IdPaciente = new SelectList(db.pacientes, "IdPaciente", "Nombre", consulta.IdPaciente);
             ViewBag.IdMedico = new SelectList(db.medicos, "IdMedico", "Nombre", consulta.IdMedico);
 
             if (!consulta.HorarioValido())
-            {
                 ModelState.AddModelError("HF", "La hora de fin debe ser mayor que la hora de inicio.");
-            }
 
             if (!consulta.FechaValida())
-            {
                 ModelState.AddModelError("FechaConsulta", "La fecha de la consulta no puede ser futura.");
-            }
 
             if (!ModelState.IsValid)
                 return View(consulta);
 
             db.consultas.Add(consulta);
             db.SaveChanges();
+
             return RedirectToAction("Index");
         }
-
 
         // GET: Consulta/Edit/5
         [Authorize(Roles = "SuperAdmin, Medico")]
@@ -117,6 +189,9 @@ namespace WebApplication02_Con_Autenticacion.Controllers
             consultas consulta = db.consultas.Find(id);
             if (consulta == null)
                 return HttpNotFound();
+
+            consulta.medicos = db.medicos.FirstOrDefault(m => m.IdMedico == consulta.IdMedico);
+            consulta.pacientes = db.pacientes.FirstOrDefault(p => p.IdPaciente == consulta.IdPaciente);
 
             return View(consulta);
         }

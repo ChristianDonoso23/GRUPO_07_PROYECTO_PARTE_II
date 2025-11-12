@@ -24,8 +24,15 @@
                     <dd class="col-sm-8 veris-detalle-value">@Html.DisplayFor(model => model.Edad)</dd>
 
                     <dt class="col-sm-4 veris-detalle-label">@Html.DisplayNameFor(model => model.Genero)</dt>
-                    <dd class="col-sm-8 veris-detalle-value">@Html.DisplayFor(model => model.Genero)</dd>
-
+                    <dd class="col-sm-8 veris-detalle-value">
+                        @{
+                            string generoTexto = Model.Genero == "M" ? "Masculino" :
+                                                 Model.Genero == "F" ? "Femenino" :
+                                                 Model.Genero == "O" ? "Otro" :
+                                                 "No especificado";
+                        }
+                        @generoTexto
+                    </dd>
                     <dt class="col-sm-4 veris-detalle-label">@Html.DisplayNameFor(model => model.Estatura)</dt>
                     <dd class="col-sm-8 veris-detalle-value">@Html.DisplayFor(model => model.Estatura) cm</dd>
 

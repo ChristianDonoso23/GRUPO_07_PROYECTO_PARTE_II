@@ -9,6 +9,7 @@ using System.Web.Mvc;
 using WebApplication02_Con_Autenticacion.Models;
 using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Identity.EntityFramework;
+using WebApplication02_Con_Autenticacion.Helpers;
 
 namespace WebApplication02_Con_Autenticacion.Controllers
 {
@@ -20,8 +21,30 @@ namespace WebApplication02_Con_Autenticacion.Controllers
         // GET: Paciente
         public ActionResult Index()
         {
-            var pacientes = db.pacientes.Include(p => p.AspNetUsers);
-            return View(pacientes.ToList());
+            var usuario = SessionHelper.CurrentUser;
+            if (usuario == null)
+                return RedirectToAction("Login", "Account");
+
+            IQueryable<pacientes> pacientesQuery;
+
+            if (User.IsInRole("SuperAdmin") || User.IsInRole("Administrador"))
+            {
+                pacientesQuery = db.pacientes.Include(p => p.AspNetUsers);
+            }
+            else if (User.IsInRole("Paciente"))
+            {
+                pacientesQuery = db.pacientes
+                    .Include(p => p.AspNetUsers)
+                    .Where(p => p.IdUsuario == usuario.Id);
+            }
+            else
+            {
+                pacientesQuery = Enumerable.Empty<pacientes>().AsQueryable();
+            }
+
+            var lista = pacientesQuery.ToList();
+            System.Diagnostics.Debug.WriteLine("Pacientes cargados: " + lista.Count);
+            return View(lista);
         }
 
         // GET: Paciente/Details/5
@@ -30,9 +53,14 @@ namespace WebApplication02_Con_Autenticacion.Controllers
             if (id == null)
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
 
+            var usuario = SessionHelper.CurrentUser;
             var paciente = db.pacientes.Find(id);
+
             if (paciente == null)
                 return HttpNotFound();
+
+            if (User.IsInRole("Paciente") && !User.IsInRole("SuperAdmin") && paciente.IdUsuario != usuario.Id)
+                return new HttpStatusCodeResult(HttpStatusCode.Forbidden, "Acceso denegado");
 
             return View(paciente);
         }
@@ -45,6 +73,7 @@ namespace WebApplication02_Con_Autenticacion.Controllers
             var userManager = new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(identityDb));
 
             var todosUsuarios = userManager.Users.ToList();
+
             var usuariosConRolPaciente = todosUsuarios
                 .Where(u => userManager.IsInRole(u.Id, "Paciente"))
                 .ToList();
@@ -81,9 +110,13 @@ namespace WebApplication02_Con_Autenticacion.Controllers
             var userManager = new UserManager<ApplicationUser>(new UserStore<ApplicationUser>(identityDb));
 
             var todosUsuarios = userManager.Users.ToList();
-            var usuariosConRolPaciente = todosUsuarios.Where(u => userManager.IsInRole(u.Id, "Paciente")).ToList();
+            var usuariosConRolPaciente = todosUsuarios
+                .Where(u => userManager.IsInRole(u.Id, "Paciente"))
+                .ToList();
             var usuariosConFicha = db.pacientes.Select(p => p.IdUsuario).ToList();
-            var usuariosDisponibles = usuariosConRolPaciente.Where(u => !usuariosConFicha.Contains(u.Id)).ToList();
+            var usuariosDisponibles = usuariosConRolPaciente
+                .Where(u => !usuariosConFicha.Contains(u.Id))
+                .ToList();
             ViewBag.IdUsuario = new SelectList(usuariosDisponibles, "Id", "Email", paciente.IdUsuario);
 
             if (!paciente.CedulaValidaEcuatoriana(paciente.Cedula))
@@ -164,19 +197,24 @@ namespace WebApplication02_Con_Autenticacion.Controllers
 
             db.pacientes.Add(paciente);
             db.SaveChanges();
-
             return RedirectToAction("Index");
         }
 
         // GET: Paciente/Edit/5
+        [Authorize(Roles = "SuperAdmin, Administrador, Paciente")]
         public ActionResult Edit(int? id)
         {
             if (id == null)
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
 
+            var usuario = SessionHelper.CurrentUser;
             var paciente = db.pacientes.Find(id);
+
             if (paciente == null)
                 return HttpNotFound();
+
+            if (User.IsInRole("Paciente") && !User.IsInRole("SuperAdmin") && paciente.IdUsuario != usuario.Id)
+                return new HttpStatusCodeResult(HttpStatusCode.Forbidden, "Acceso denegado");
 
             string path = Server.MapPath("~/Imagenes");
             var archivos = System.IO.Directory.GetFiles(path)
@@ -192,6 +230,7 @@ namespace WebApplication02_Con_Autenticacion.Controllers
         // POST: Paciente/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin, Administrador, Paciente")]
         public ActionResult Edit([Bind(Include = "IdPaciente,IdUsuario,Nombre,Cedula,Edad,Genero,Estatura,Peso,Foto")] pacientes paciente)
         {
             string path = Server.MapPath("~/Imagenes");
@@ -199,6 +238,11 @@ namespace WebApplication02_Con_Autenticacion.Controllers
                 .Select(f => System.IO.Path.GetFileName(f))
                 .ToList();
             ViewBag.Fotos = new SelectList(archivos, paciente.Foto);
+
+            var usuario = SessionHelper.CurrentUser;
+
+            if (User.IsInRole("Paciente") && !User.IsInRole("SuperAdmin") && paciente.IdUsuario != usuario.Id)
+                return new HttpStatusCodeResult(HttpStatusCode.Forbidden, "Acceso denegado");
 
             if (!paciente.CedulaValidaEcuatoriana(paciente.Cedula))
             {
@@ -216,6 +260,7 @@ namespace WebApplication02_Con_Autenticacion.Controllers
         }
 
         // GET: Paciente/Delete/5
+        [Authorize(Roles = "SuperAdmin, Administrador")]
         public ActionResult Delete(int? id)
         {
             if (id == null)
@@ -231,6 +276,7 @@ namespace WebApplication02_Con_Autenticacion.Controllers
         // POST: Paciente/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "SuperAdmin, Administrador")]
         public ActionResult DeleteConfirmed(int id)
         {
             var paciente = db.pacientes.Find(id);

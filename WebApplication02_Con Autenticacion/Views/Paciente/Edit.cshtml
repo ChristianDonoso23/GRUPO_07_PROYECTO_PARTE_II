@@ -52,9 +52,9 @@
             <div class="col-md-9 veris-crear-input-col">
                 <select id="Genero" name="Genero" class="form-control veris-crear-input">
                     <option value="">Seleccione...</option>
-                    <option value="Masculino" @(Model.Genero == "Masculino" ? "selected" : "")>Masculino</option>
-                    <option value="Femenino" @(Model.Genero == "Femenino" ? "selected" : "")>Femenino</option>
-                    <option value="Otro" @(Model.Genero == "Otro" ? "selected" : "")>Otro</option>
+                    <option value="M" @(Model.Genero == "Masculino" ? "selected" : "")>Masculino</option>
+                    <option value="F" @(Model.Genero == "Femenino" ? "selected" : "")>Femenino</option>
+                    <option value="O" @(Model.Genero == "Otro" ? "selected" : "")>Otro</option>
                 </select>
                 @Html.ValidationMessageFor(model => model.Genero, "", new { @class = "text-danger d-block veris-crear-error" })
             </div>

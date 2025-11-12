@@ -99,7 +99,21 @@ namespace WebApplication02_Con_Autenticacion.Controllers
             switch (result)
             {
                 case SignInStatus.Success:
-                    return RedirectToLocal(returnUrl);
+                    {
+                        // Reutilizamos la variable 'user' ya declarada anteriormente
+                        user = await UserManager.FindByNameAsync(model.UserName);
+
+                        // Guardar el objeto completo en la sesión
+                        Session["User"] = user;
+
+                        // También campos individuales para fácil acceso
+                        Session["UserId"] = user.Id;
+                        Session["UserName"] = user.UserName;
+                        Session["Email"] = user.Email;
+                        Session["PhoneNumber"] = user.PhoneNumber;
+
+                        return RedirectToLocal(returnUrl);
+                    }
                 case SignInStatus.LockedOut:
                     return View("Lockout");
                 case SignInStatus.RequiresVerification:
@@ -413,6 +427,8 @@ namespace WebApplication02_Con_Autenticacion.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult LogOff()
         {
+            // Para cerrar la sesion del usuario y limpiar la sesión
+            Session["User"] = null;
             AuthenticationManager.SignOut(DefaultAuthenticationTypes.ApplicationCookie);
             return RedirectToAction("Index", "Home");
         }
