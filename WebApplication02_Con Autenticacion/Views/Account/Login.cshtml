@@ -1,35 +1,64 @@
 ﻿@using WebApplication02_Con_Autenticacion.Models
 @model LoginViewModel
+
 @{
     ViewBag.Title = "Iniciar sesión";
 }
-
 
 <main class="container my-4 veris-login-container" aria-labelledby="title">
     <section id="loginForm" class="veris-login-section">
         <h2 id="title" class="veris-login-title mb-3 text-center">@ViewBag.Title</h2>
 
-        @using (Html.BeginForm("Login", "Account", new { ReturnUrl = ViewBag.ReturnUrl }, FormMethod.Post, new { @class = "veris-login-form", role = "form", novalidate = "novalidate" }))
+        @* 🔹 Mostrar módulo seleccionado si existe *@
+        @if (ViewBag.Modulo != null)
+        {
+            <div class="alert alert-info text-center mb-3" role="alert">
+                <strong>Módulo seleccionado:</strong> @ViewBag.Modulo
+            </div>
+        }
+
+        @using (Html.BeginForm("Login", "Account",
+               new { ReturnUrl = ViewBag.ReturnUrl, modulo = ViewBag.Modulo },
+               FormMethod.Post,
+               new { @class = "veris-login-form", role = "form", novalidate = "novalidate" }))
         {
             @Html.AntiForgeryToken()
 
             <h4 class="veris-login-subtitle text-center mb-3">Utilice una cuenta local para iniciar sesión.</h4>
             <hr class="veris-login-divider" />
 
-            @Html.ValidationSummary(true, "", new { @class = "text-danger veris-login-validation", id = "validation-summary", aria_live = "polite" })
+            @* 🔹 Mostrar errores de validación, incluyendo el de rol/módulo *@
+            @Html.ValidationSummary(true, "", new
+            {
+                @class = "text-danger veris-login-validation text-center mb-3",
+                id = "validation-summary",
+                aria_live = "polite"
+            })
 
             <!-- Usuario -->
             <div class="mb-3 veris-login-group">
                 @Html.LabelFor(m => m.UserName, "Usuario", new { @class = "veris-login-label" })
-                @Html.TextBoxFor(m => m.UserName, new { @class = "form-control veris-login-input", required = "required", autocomplete = "username" })
-                @Html.ValidationMessageFor(m => m.UserName, "", new { @class = "text-danger d-block veris-login-error", id = "UserName-error" })
+                @Html.TextBoxFor(m => m.UserName, new
+                {
+                    @class = "form-control veris-login-input",
+                    required = "required",
+                    autocomplete = "username",
+                    placeholder = "Ingrese su usuario"
+                })
+                @Html.ValidationMessageFor(m => m.UserName, "", new { @class = "text-danger d-block veris-login-error" })
             </div>
 
             <!-- Contraseña -->
             <div class="mb-3 veris-login-group">
                 @Html.LabelFor(m => m.Password, "Contraseña", new { @class = "veris-login-label" })
-                @Html.PasswordFor(m => m.Password, new { @class = "form-control veris-login-input", required = "required", autocomplete = "current-password" })
-                @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger d-block veris-login-error", id = "Password-error" })
+                @Html.PasswordFor(m => m.Password, new
+                {
+                    @class = "form-control veris-login-input",
+                    required = "required",
+                    autocomplete = "current-password",
+                    placeholder = "Ingrese su contraseña"
+                })
+                @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger d-block veris-login-error" })
             </div>
 
             <!-- Recordarme -->
@@ -47,13 +76,7 @@
             <p class="text-center veris-login-register">
                 @Html.ActionLink("Registrarse como usuario nuevo", "Register", null, new { @class = "veris-login-link" })
             </p>
-
-            <!-- Opcional: Recuperar contraseña
-            <p class="text-center">
-                @Html.ActionLink("¿Ha olvidado su contraseña?", "ForgotPassword", null, new { @class = "veris-login-link" })
-            </p> -->
         }
-
     </section>
 </main>
 
