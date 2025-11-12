@@ -248,6 +248,38 @@ namespace WebApplication02_Con_Autenticacion.Controllers
             return RedirectToAction("Index");
         }
 
+        // GET: Receta/RecetasPaciente → Para pacientes logueados
+        [Authorize(Roles = "Paciente")]
+        public ActionResult RecetasPaciente()
+        {
+            var usuario = SessionHelper.CurrentUser;
+
+            if (usuario == null)
+                return RedirectToAction("Login", "Account");
+
+            // Buscar el IdPaciente correspondiente al usuario actual
+            var idPaciente = db.pacientes
+                .Where(p => p.IdUsuario == usuario.Id)
+                .Select(p => p.IdPaciente)
+                .FirstOrDefault();
+
+            if (idPaciente == 0)
+            {
+                TempData["ErrorMensaje"] = "No se encontró un perfil de paciente asociado a este usuario.";
+                return RedirectToAction("Index", "Home");
+            }
+
+            // Obtener recetas relacionadas con las consultas del paciente actual
+            var recetas = db.recetas
+                .Include(r => r.consultas)
+                .Include(r => r.medicamentos)
+                .Where(r => r.consultas.IdPaciente == idPaciente)
+                .AsNoTracking()
+                .ToList();
+
+            return View("RecetasPaciente", recetas);
+        }
+
         protected override void Dispose(bool disposing)
         {
             if (disposing)

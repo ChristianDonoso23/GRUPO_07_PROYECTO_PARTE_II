@@ -208,6 +208,39 @@ namespace WebApplication02_Con_Autenticacion.Controllers
             return RedirectToAction("Index");
         }
 
+        // GET: Consulta/MisCitas  → Para pacientes logueados
+        [Authorize(Roles = "Paciente")]
+        public ActionResult CitasPaciente()
+        {
+            var usuario = SessionHelper.CurrentUser;
+
+            if (usuario == null)
+                return RedirectToAction("Login", "Account");
+
+            // Buscar el IdPaciente del usuario actual
+            var idPaciente = db.pacientes
+                .Where(p => p.IdUsuario == usuario.Id)
+                .Select(p => p.IdPaciente)
+                .FirstOrDefault();
+
+            if (idPaciente == 0)
+            {
+                TempData["ErrorMensaje"] = "No se encontró un perfil de paciente asociado a este usuario.";
+                return RedirectToAction("Index", "Home");
+            }
+
+            // 🔹 Incluye las relaciones para evitar proxies
+            var consultas = db.consultas
+                .Include(c => c.medicos)
+                .Include(c => c.pacientes)
+                .Where(c => c.IdPaciente == idPaciente)
+                .AsNoTracking() // evita proxies dinámicos
+                .ToList();
+
+            return View("CitasPaciente", consultas);
+        }
+
+
         protected override void Dispose(bool disposing)
         {
             if (disposing)
