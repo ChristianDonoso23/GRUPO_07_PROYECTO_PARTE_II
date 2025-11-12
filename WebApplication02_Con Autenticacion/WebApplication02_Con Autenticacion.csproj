@@ -180,6 +180,7 @@
     <Compile Include="Controllers\PacienteController.cs" />
     <Compile Include="Controllers\RecetaController.cs" />
     <Compile Include="Controllers\RolController.cs" />
+    <Compile Include="Filters\Filtro_Inicio_Sesion.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
