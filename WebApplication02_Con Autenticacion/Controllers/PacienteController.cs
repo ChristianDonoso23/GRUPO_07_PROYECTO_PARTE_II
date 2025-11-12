@@ -100,7 +100,7 @@ namespace WebApplication02_Con_Autenticacion.Controllers
         [Authorize(Roles = "SuperAdmin, Administrador")]
         public ActionResult Create([Bind(Include = "IdPaciente,IdUsuario,Nombre,Cedula,Edad,Genero,Estatura,Peso,Foto")] pacientes paciente)
         {
-            string path = Server.MapPath("~/Imagenes");
+            string path = Server.MapPath("~/Imagenes/Usuarios");
             var archivos = System.IO.Directory.GetFiles(path)
                 .Select(f => System.IO.Path.GetFileName(f))
                 .ToList();
@@ -216,7 +216,7 @@ namespace WebApplication02_Con_Autenticacion.Controllers
             if (User.IsInRole("Paciente") && !User.IsInRole("SuperAdmin") && paciente.IdUsuario != usuario.Id)
                 return new HttpStatusCodeResult(HttpStatusCode.Forbidden, "Acceso denegado");
 
-            string path = Server.MapPath("~/Imagenes");
+            string path = Server.MapPath("~/Imagenes/Usuarios");
             var archivos = System.IO.Directory.GetFiles(path)
                 .Select(f => System.IO.Path.GetFileName(f))
                 .ToList();
@@ -233,7 +233,7 @@ namespace WebApplication02_Con_Autenticacion.Controllers
         [Authorize(Roles = "SuperAdmin, Administrador, Paciente")]
         public ActionResult Edit([Bind(Include = "IdPaciente,IdUsuario,Nombre,Cedula,Edad,Genero,Estatura,Peso,Foto")] pacientes paciente)
         {
-            string path = Server.MapPath("~/Imagenes");
+            string path = Server.MapPath("~/Imagenes/Usuarios");
             var archivos = System.IO.Directory.GetFiles(path)
                 .Select(f => System.IO.Path.GetFileName(f))
                 .ToList();
